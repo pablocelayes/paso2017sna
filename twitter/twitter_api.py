@@ -4,6 +4,7 @@ from tweepy import Cursor, OAuthHandler, API
 from tweepy.error import TweepError
 from random import choice
 from localsettings import AUTH_DATA
+import time
 
 # Used to switch between tokens to avoid exceeding rates
 class APIHandler(object):
@@ -18,9 +19,9 @@ class APIHandler(object):
         if self.nreqs == self.max_nreqs:
             self.get_fresh_connection()
         else:
-            print("Continuing with API Credentials #%d" % self.index)
+            # print("Continuing with API Credentials #%d" % self.index)
             self.nreqs += 1
-        return self.connection
+        return self.conn
 
     def get_fresh_connection(self):
         success = False
@@ -31,11 +32,30 @@ class APIHandler(object):
                 print "Switching to API Credentials #%d" % self.index
                 auth = OAuthHandler(d['consumer_key'], d['consumer_secret'])
                 auth.set_access_token(d['access_token'], d['access_token_secret'])
-                self.connection = API(auth_handler=auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+                self.conn = API(auth_handler=auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
                 self.nreqs = 0
-                return self.connection
+                return self.conn
             except TweepError, e:
                 print("Error trying to connect: %s" % e.message)
                 time.sleep(10)
+
+    def traer_seguidores(self, **kwargs):
+        tried = 0
+        while True:    
+            try:
+                fids = []
+                for fid in Cursor(self.conn.followers_ids, **kwargs).items():
+                    fids.append(fid)
+                return fids
+            except TweepError as e:
+                if e.message == 'Rate limit reached':
+                    self.get_fresh_connection()
+                    tried += 1
+                    if tried == len(self.auth_data):
+                        print("All credentials exceeded limit. Waiting...")    
+                        time.sleep(60)
+                        tried = 0
+                else:
+                    raise e
 
 API_HANDLER = APIHandler(AUTH_DATA)
