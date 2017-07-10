@@ -56,7 +56,9 @@ if __name__ == '__main__':
     # Login
     login(br, EMAIL, PASSWORD)
     
-    pagina = 'hectorbaldassi'
+    # pagina = 'hectorbaldassi'
+    # pagina = 'martinllaryoraoficial'
+    pagina = 'pablocarrook'
 
     #  Load or fetch post links
     post_links_fname = "postlinks_%s.json" % pagina
@@ -71,24 +73,31 @@ if __name__ == '__main__':
     # Fetch posts data
     url_base = 'https://web.facebook.com'
     data_posts = []
-    for pl in post_links:
+    for i, pl in enumerate(post_links):
         pag, tipo = pl.split('/')[1:3]
-        if pag != pagina or tipo != 'posts':
+        if pag != pagina:
             # TODO: manejar estos casos
             continue
         
         url = url_base + pl
         br.visit(url)
-        url_posta = br.driver.current_url
-        if br.driver.current_url != url:
+        url_browser = br.driver.current_url.split('?')[0]
+        url_link = url.split('?')[0]
+        if url_browser != url_link:
             print "Omitiendo redirect"
             print "De:\t %s" % url
             print "A:\t %s" % url_posta
 
-        data = {}
-
+        data = {'url': url}
+        
         xp_post = ".//*[contains(@class, 'permalinkPost')][1]"
-        post = br.find_by_xpath(xp_post)[0]
+
+        try:
+            post = br.find_by_xpath(xp_post)[0]
+        except Exception as e:
+            print "No pudimos leer post para %s" % url
+            # TODO: leer /video/
+            continue
 
         ## Fecha
 
@@ -120,6 +129,7 @@ if __name__ == '__main__':
         xp_coments = ".//*[contains(@class, 'fbUserContent')]/div[2]"
 
         data_posts.append(data)
+        print "%d/%d posts leídos" % (i + 1, len(post_links))
 
     with open("posts_%s.json" % pagina, 'w') as f:
         json.dump(data_posts, f)
