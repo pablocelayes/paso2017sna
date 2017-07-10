@@ -1,1 +1,4 @@
 facebook/localsettings.py
+*.pyc
+*.sublime*
+localsettings.py
