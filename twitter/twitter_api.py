@@ -15,13 +15,13 @@ class APIHandler(object):
         self.max_nreqs = max_nreqs
         self.get_fresh_connection()
 
-    def get_connection(self):
+    def conn(self):
         if self.nreqs == self.max_nreqs:
             self.get_fresh_connection()
         else:
             # print("Continuing with API Credentials #%d" % self.index)
             self.nreqs += 1
-        return self.conn
+        return self.conn_
 
     def get_fresh_connection(self):
         success = False
@@ -32,30 +32,34 @@ class APIHandler(object):
                 print "Switching to API Credentials #%d" % self.index
                 auth = OAuthHandler(d['consumer_key'], d['consumer_secret'])
                 auth.set_access_token(d['access_token'], d['access_token_secret'])
-                self.conn = API(auth_handler=auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+                self.conn_ = API(auth_handler=auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
                 self.nreqs = 0
-                return self.conn
+                return self.conn_
             except TweepError, e:
                 print("Error trying to connect: %s" % e.message)
                 time.sleep(10)
 
     def traer_seguidores(self, **kwargs):
-        tried = 0
-        while True:    
+        retries = 0
+        fids = []
+        c = Cursor(self.conn().followers_ids, count=5000, **kwargs).pages()
+        while True:
             try:
-                fids = []
-                for fid in Cursor(self.conn.followers_ids, **kwargs).items():
-                    fids.append(fid)
-                return fids
-            except TweepError as e:
-                if e.message == 'Rate limit reached':
-                    self.get_fresh_connection()
-                    tried += 1
-                    if tried == len(self.auth_data):
-                        print("All credentials exceeded limit. Waiting...")    
-                        time.sleep(60)
-                        tried = 0
-                else:
+                fids += c.next()
+            except TweepError, e:
+                if not 'rate limit' in e.reason.lower():
                     raise e
+                if retries == 3:
+                    raise TweepError(reason='retries exceeeded')
+                else:
+                    nmins = 15
+                    print e
+                    print "Rate limit reached. Waiting %d mins..." % nmins
+                    print "fetched %d followers so far." % len(fids)
+                    time.sleep(60 * nmins)
+                    retries += 1
+            except StopIteration:
+                break
+        return fids
 
 API_HANDLER = APIHandler(AUTH_DATA)
