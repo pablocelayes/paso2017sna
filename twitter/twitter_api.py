@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from tweepy import Cursor, OAuthHandler, API
+from tweepy import Cursor, AppAuthHandler, OAuthHandler, API
 from tweepy.error import TweepError
 from random import choice
 from localsettings import AUTH_DATA
 import time
+
+
+
 
 # Used to switch between tokens to avoid exceeding rates
 class APIHandler(object):
@@ -30,8 +33,11 @@ class APIHandler(object):
                 self.index = (self.index + 1) % len(self.auth_data)
                 d = self.auth_data[self.index]
                 print "Switching to API Credentials #%d" % self.index
-                auth = OAuthHandler(d['consumer_key'], d['consumer_secret'])
-                auth.set_access_token(d['access_token'], d['access_token_secret'])
+
+                # auth = OAuthHandler(d['consumer_key'], d['consumer_secret'])
+                # auth.set_access_token(d['access_token'], d['access_token_secret'])
+
+                auth = AppAuthHandler(d['consumer_key'], d['consumer_secret'])
                 self.conn_ = API(auth_handler=auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
                 self.nreqs = 0
                 return self.conn_
@@ -48,11 +54,11 @@ class APIHandler(object):
                 try:
                     fs, (_, cursor) = self.conn_.followers_ids(count=5000, cursor=cursor, **kwargs)
                     fids += fs
+                    # print "fetched %d followers so far." % len(fids)
                 except TweepError, e:
                     if not 'rate limit' in e.reason.lower():
                         raise e
                     else:
-                        print "fetched %d followers so far." % len(fids)
                         conns_tried += 1
                         if conns_tried == len(self.auth_data):
                             nmins = 15
