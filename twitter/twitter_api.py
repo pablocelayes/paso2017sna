@@ -40,26 +40,29 @@ class APIHandler(object):
                 time.sleep(10)
 
     def traer_seguidores(self, **kwargs):
-        retries = 0
+        conns_tried = 0
         fids = []
-        c = Cursor(self.conn().followers_ids, count=5000, **kwargs).pages()
-        while True:
-            try:
-                fids += c.next()
-            except TweepError, e:
-                if not 'rate limit' in e.reason.lower():
-                    raise e
-                if retries == 3:
-                    raise TweepError(reason='retries exceeeded')
-                else:
-                    nmins = 15
-                    print e
-                    print "Rate limit reached. Waiting %d mins..." % nmins
-                    print "fetched %d followers so far." % len(fids)
-                    time.sleep(60 * nmins)
-                    retries += 1
-            except StopIteration:
-                break
+        cursor = -1
+        while cursor:
+            while True:
+                try:
+                    fs, (_, cursor) = self.conn_.followers_ids(count=5000, cursor=cursor, **kwargs)
+                    fids += fs
+                except TweepError, e:
+                    if not 'rate limit' in e.reason.lower():
+                        raise e
+                    else:
+                        print "fetched %d followers so far." % len(fids)
+                        conns_tried += 1
+                        if conns_tried == len(self.auth_data):
+                            nmins = 15
+                            print e
+                            print "Rate limit reached for all connections. Waiting %d mins..." % nmins
+                            time.sleep(60 * nmins)
+                            conns_tried = 0 # restart count
+                        else:
+                            self.get_fresh_connection()
+
         return fids
 
 API_HANDLER = APIHandler(AUTH_DATA)
