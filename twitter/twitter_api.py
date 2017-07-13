@@ -4,12 +4,10 @@ from tweepy import Cursor, AppAuthHandler, OAuthHandler, API
 from tweepy.error import TweepError
 from random import choice
 from localsettings import AUTH_DATA
+from datetime import datetime
 import time
 
-
-
-
-# Used to switch between tokens to avoid exceeding rates
+# Used to switch between tokens to avoid exceeding rate limits
 class APIHandler(object):
     """docstring for APIHandler"""
     def __init__(self, auth_data, max_nreqs=10):
@@ -70,5 +68,34 @@ class APIHandler(object):
                             self.get_fresh_connection()
 
         return fids
+
+    def traer_timeline(self, user_id, date_lower_limit):
+        page = 1
+        done = False
+        tweets = []
+        while not done:
+            try:
+                page_tweets = self.conn_.user_timeline(user_id=user_id, page=page)
+                if not page_tweets:
+                    done = True
+                    break
+
+                for tw in page_tweets: 
+                    if tw.created_at < date_lower_limit:
+                        done = True
+                        break
+                    else:
+                        tweets.append(tw._json)
+                page += 1
+            except Exception, e:                
+                if e.message == u'Not authorized.':
+                    break
+                else:
+                    print("Error: %s" % e.message)
+                    print "waiting..."
+                    time.sleep(30)
+                    continue
+
+        return tweets
 
 API_HANDLER = APIHandler(AUTH_DATA)
