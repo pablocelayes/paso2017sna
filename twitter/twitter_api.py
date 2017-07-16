@@ -51,7 +51,7 @@ class APIHandler(object):
             while True:
                 try:
                     fs, (_, cursor) = self.conn_.followers_ids(count=5000, cursor=cursor, **kwargs)
-                    fids += fs
+                    fids += [str(x) for x in fs]
                     # print "fetched %d followers so far." % len(fids)
                 except TweepError, e:
                     if not 'rate limit' in e.reason.lower():
@@ -69,23 +69,57 @@ class APIHandler(object):
 
         return fids
 
-    def traer_timeline(self, user_id, date_lower_limit):
+
+    def traer_seguidos(self, **kwargs):
+        conns_tried = 0
+        fids = []
+        cursor = -1
+        while cursor:
+            while True:
+                try:
+                    fs, (_, cursor) = self.conn_.friends_ids(count=5000, cursor=cursor, **kwargs)
+                    fids += [str(x) for x in fs]
+                    # print "fetched %d followers so far." % len(fids)
+                except TweepError, e:
+                    if not 'rate limit' in e.reason.lower():
+                        raise e
+                    else:
+                        conns_tried += 1
+                        if conns_tried == len(self.auth_data):
+                            nmins = 15
+                            print e
+                            print "Rate limit reached for all connections. Waiting %d mins..." % nmins
+                            time.sleep(60 * nmins)
+                            conns_tried = 0 # restart count
+                        else:
+                            self.get_fresh_connection()
+
+        return fids
+
+
+    def traer_timeline(self, user_id, desde=None, hasta=None, dia=None, limite=None):
         page = 1
-        done = False
         tweets = []
-        while not done:
+        if dia:
+            desde = dia
+            hasta = dia
+
+        while True:
             try:
                 page_tweets = self.conn_.user_timeline(user_id=user_id, page=page)
                 if not page_tweets:
-                    done = True
                     break
 
                 for tw in page_tweets: 
-                    if tw.created_at < date_lower_limit:
-                        done = True
+                    # print(tw.text)
+                    if desde and tw.created_at < desde:
                         break
-                    else:
-                        tweets.append(tw._json)
+                    if hasta and tw.created_at.date() > hasta:
+                            continue                        
+
+                    tweets.append(tw._json) # =dia or >= desde
+                    if limite and len(tweets) >= limite:
+                        break
                 page += 1
             except Exception, e:                
                 if e.message == u'Not authorized.':
