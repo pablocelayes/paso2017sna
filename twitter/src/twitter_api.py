@@ -48,24 +48,26 @@ class APIHandler(object):
         fids = []
         cursor = -1
         while cursor:
-            while True:
-                try:
-                    fs, (_, cursor) = self.conn_.followers_ids(count=5000, cursor=cursor, **kwargs)
-                    fids += [str(x) for x in fs]
-                    # print "fetched %d followers so far." % len(fids)
-                except TweepError, e:
-                    if not 'rate limit' in e.reason.lower():
-                        raise e
+            try:
+                fs, (_, cursor) = self.conn_.followers_ids(count=5000, cursor=cursor, **kwargs)
+                fids += [str(x) for x in fs]
+                # if not fids:
+                #     # terminamos
+
+                print "fetched %d followers so far." % len(fids)
+            except TweepError, e:
+                if not 'rate limit' in e.reason.lower():
+                    raise e
+                else:
+                    conns_tried += 1
+                    if conns_tried == len(self.auth_data):
+                        nmins = 15
+                        print e
+                        print "Rate limit reached for all connections. Waiting %d mins..." % nmins
+                        time.sleep(60 * nmins)
+                        conns_tried = 0 # restart count
                     else:
-                        conns_tried += 1
-                        if conns_tried == len(self.auth_data):
-                            nmins = 15
-                            print e
-                            print "Rate limit reached for all connections. Waiting %d mins..." % nmins
-                            time.sleep(60 * nmins)
-                            conns_tried = 0 # restart count
-                        else:
-                            self.get_fresh_connection()
+                        self.get_fresh_connection()
 
         return fids
 
@@ -75,24 +77,23 @@ class APIHandler(object):
         fids = []
         cursor = -1
         while cursor:
-            while True:
-                try:
-                    fs, (_, cursor) = self.conn_.friends_ids(count=5000, cursor=cursor, **kwargs)
-                    fids += [str(x) for x in fs]
-                    # print "fetched %d followers so far." % len(fids)
-                except TweepError, e:
-                    if not 'rate limit' in e.reason.lower():
-                        raise e
+            try:
+                fs, (_, cursor) = self.conn_.friends_ids(count=5000, cursor=cursor, **kwargs)
+                fids += [str(x) for x in fs]
+                # print "fetched %d followers so far." % len(fids)
+            except TweepError, e:
+                if not 'rate limit' in e.reason.lower():
+                    raise e
+                else:
+                    conns_tried += 1
+                    if conns_tried == len(self.auth_data):
+                        nmins = 15
+                        print e
+                        print "Rate limit reached for all connections. Waiting %d mins..." % nmins
+                        time.sleep(60 * nmins)
+                        conns_tried = 0 # restart count
                     else:
-                        conns_tried += 1
-                        if conns_tried == len(self.auth_data):
-                            nmins = 15
-                            print e
-                            print "Rate limit reached for all connections. Waiting %d mins..." % nmins
-                            time.sleep(60 * nmins)
-                            conns_tried = 0 # restart count
-                        else:
-                            self.get_fresh_connection()
+                        self.get_fresh_connection()
 
         return fids
 

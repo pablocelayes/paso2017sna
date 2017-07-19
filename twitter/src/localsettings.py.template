@@ -1,3 +1,5 @@
+DATA_PATH = '/home/pablo/GDrive/BigSocialData/twitter/'
+
 AUTH_DATA = [
     # Mine
     dict(consumer_key = 'xxxxxxxxxxxxxxxxxxxx',
