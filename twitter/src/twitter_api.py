@@ -113,10 +113,10 @@ class APIHandler(object):
 
                 for tw in page_tweets: 
                     # print(tw.text)
-                    if desde and tw.created_at < desde:
+                    if desde and tw.created_at.date() < desde:
                         break
                     if hasta and tw.created_at.date() > hasta:
-                            continue                        
+                        continue                        
 
                     tweets.append(tw._json) # =dia or >= desde
                     if limite and len(tweets) >= limite:
