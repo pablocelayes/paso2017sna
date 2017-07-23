@@ -2,3 +2,4 @@ facebook/localsettings.py
 *.pyc
 *.sublime*
 localsettings.py
+*.ipynb_checkpoints*
