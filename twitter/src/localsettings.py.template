@@ -1,4 +1,4 @@
-DATA_PATH = '/home/pablo/GDrive/BigSocialData/twitter/'
+DATA_PATH = '/home/pablo/GDrive/BigSocialData/twitter/reporte_08_02'
 
 AUTH_DATA = [
     # Mine
